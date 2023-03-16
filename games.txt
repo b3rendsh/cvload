@@ -1,0 +1,25 @@
+Games that have been tested with the Colecovision loader.
+
+
+Playable
+--------
+Burger Time
+Cosmic Crisis
+Donkey Kong Junior
+Frogger
+Gorf
+Lady Bug
+Meteoric Shower
+Tank Wars
+Time Pilot
+Wargames
+
+
+Not working
+-----------
+Boulderdash		Doesn't start
+Donkey Kong		The rolling barrel sprites are not visible
+Zaxxon			Hangs after skill screen, display turns black with orange artifacts
+River Raid		Doesn't start
+Q-bert			Uses it's own VDP I/O routines
+
