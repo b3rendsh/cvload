@@ -4,9 +4,9 @@ Run Colecovision games on a Z180 retrocomputer:
 - Propeller graphics card that emulates a TMS9918A
 - Keyboard input via serial port to replace or in addition to game controller
 
-Can it run Donkey Kong?
+Can it run Donkey Kong?  
 Basically all these components are different from a real Colecovision,
-and only a limited number of games will be playable.
+and only a limited number of games will be playable.  
 See: games.txt
 
 ## Loader steps
@@ -30,10 +30,10 @@ CP/M is only used to load the binaries.
 
 ## SCM for Colecovision
 
-Start game from scm prompt with:
+Start game from scm prompt with:  
 g 5000
 
-I did some hacks in the scm source code to make it work for this purpose.
+I did some hacks in the scm source code to make it work for this purpose.  
 Modified sources and config files are in the scm folder.
 
 ## Todo
@@ -42,28 +42,28 @@ Modified sources and config files are in the scm folder.
 
 
 ## References
-Colecovision Coding Guide:
+Colecovision Coding Guide:  
 https://archive.org/details/manualzilla-id-5667325
 
-SCM V1.3:
+SCM V1.3:  
 https://smallcomputercentral.com/small-computer-monitor/
 
-SC203 Modular Z180 Computer:
+SC203 Modular Z180 Computer:  
 https://smallcomputercentral.com/sc203-modular-z180-computer/
 
-Propeller Graphics Card:
+Propeller Graphics Card:  
 https://github.com/maccasoft/propeller-graphics-card
 
-Game controller card:
-https://github.com/jblang/GameController
+Game controller card:  
+https://github.com/jblang/GameController  
 Part of the loader code is based on examples/z180load.asm
 
-SN76489 Sound card:
+SN76489 Sound card:  
 https://github.com/jblang/SN76489
 
-YM2149 card:
+YM2149 card:  
 https://github.com/electrified/rc2014-ym2149
 
-Example code to emulate SN76489: 
+Example code to emulate SN76489:  
 http://www.ricbit.com/mundobizarro/sic.php
 
