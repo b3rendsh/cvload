@@ -68,7 +68,7 @@ cvpatch:	; VDP I/O routines
 		LD	HL,$118B
 		CALL	patchHL
 
-IFNDEF PSG
+IFNDEF SN76489
 		;Replace PSG I/O instructions: out ($ff),a --> nop
 		XOR	A
 		LD	($0172),A		; Sound subroutines
@@ -101,7 +101,14 @@ ENDIF
 
 		; Prevent NMI call during initialisation.
 		LD	A,0
-		LD	(VDP1SAV),A		
+		LD	(VDP1SAV),A
+
+		; Some games (e.g. Zaxxon) use following addresses in the READ_VRAM 
+		; routine to get the VDP I/O port values.
+		LD	A,VDPIO1
+		LD	($1D43),A
+		LD	A,VDPIO0
+		LD	($1D47),A		
 
 ; patch end
 

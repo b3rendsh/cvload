@@ -15,10 +15,10 @@
 		;DEFINE	TESTK2			; Echo processed keys on ASCI 0 terminal
 		;DEFINE	INTKEY			; Interrupt driven keyboard input (experimental)
 
-		DEFINE	GAMECTL			; Game controller present
+		DEFINE	GAMECTL			; Include game controller support
 
-		;DEFINE	PSG			; Programmable Sound Generator present
-		;DEFINE YM2149			; YM21949 / AY-3-8910 present
+		DEFINE	SN76489			; Include SN76489A PSG support
+		;DEFINE YM2149			; Include YM21949/AY-3-8910 conversion (todo)
 
 ; Z180 Settings
 CPUKHZ:		EQU	18432 			; Clock speed
