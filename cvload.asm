@@ -1,5 +1,5 @@
 ; ------------------------------------------------------------------------------
-; CVLOAD V0.1
+; CVLOAD V0.2
 ;
 ; ColecoVision Game Loader for CP/M on Z180
 ; ------------------------------------------------------------------------------
@@ -129,42 +129,15 @@ rungame:	DI				; No interrupts during loader process
 		LD	A,$00            	; Move Z180 I/O Base to $00
         	OUT0	($FF),A			; to avoid interference with Colecovision ports
 
-IFDEF TEST
-IFDEF SLOWPROC
-		LD	A, $F0			; Set maximum memory and I/O wait states
-		OUT0	($32),A
-		LD	A,$00			; Divide clock by two
-		OUT0	($1F),A			; this will also half the ASCI baudrate
-		LD	A,$C0			; Enable refresh cycle every 10 T states
-		OUT0	($36),A			; and make refresh wait 3 cycles long
-						; this adds additional delay to the bus cycle
-ELSE
-		LD	A,$30			; Only set maximum I/O wait states (required for graphics card)
-		OUT0	($32),A
-		LD	A,$00
-		OUT	($34),A			; Mask external interrupts
-		OUT0	($36),A			; Turn off memory refresh
-ENDIF
-        	LD	A,$00			; Disable interrupts for unused internal peripherals
-		OUT0	($10),A			; Timer
-		OUT0	($30),A			; DMA controller
-		OUT0	($0A),A			; CSI/O
-		OUT0	($05),A			; ASCI 1
-ENDIF
-
-IFNDEF INTKEY
 		IN0	A,($04)           	; ASCI 0
 		AND	$F6			; Mask the receive/transmit interrupt bits
 		OUT0	($04),A
-ENDIF
+
 
 ; ------------------------------------------------------------------------------
 ; Start SCM or Colecovision game
 ; ------------------------------------------------------------------------------
 
-IFDEF TEST
-		JP	$5000			; Apply Colecovision patches and start game
-ENDIF
 IFNDEF STARTSCM
 		LD	A,$55
 		LD	($5003),A		; Set autostart Coleco patch

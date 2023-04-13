@@ -7,6 +7,7 @@ Burger Time
 Carnival
 Cosmic Avenger
 Cosmic Crisis
+Donkey Kong (24K)	Requires HALFSPEED setting
 Donkey Kong Jr
 Frogger
 Gorf
@@ -21,7 +22,6 @@ War Games
 
 Partially working
 -----------------
-Donkey Kong		The rolling barrel sprites are not visible
 Zaxxon			Errors with the sprite positions, the fighter jet crashes sometimes
 
 

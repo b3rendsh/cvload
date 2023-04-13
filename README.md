@@ -12,19 +12,20 @@ See: games.txt
 ## Loader steps
 1. Load game ROM file from disk
 2. Include Colecovision BIOS binary
-3. Optionally include SCM 1.3 binary
+3. Include SCM 1.3 binary
 4. Include Colecovision patch program
 4. Move loaded/included binaries to destination RAM locations
 5. Apply system settings for speed and interrupts
 6. Start Colecovision patcher or SCM
 
-CP/M is only used to load the binaries.
+CP/M is only used to load the binaries.  
+The Coleco rom file and scm binary must be added to compile the program.  
 
 ## Colecovision BIOS patches
 
 - Replace VDP video i/o routines
 - Extend game controller input routines
-- Emulate TMS9918A vsync interrupt with 50Hz timer 
+- Emulate TMS9918A vsync interrupt with 60Hz timer 
 - Apply system patches
 - Boot Colecovision BIOS
 
@@ -45,8 +46,10 @@ W = Up
 X = Down  
 , = Left fire  
 . = Right fire  
+P = Invoke SCM monitor  
+  
 Other keys:  
-0..9,*,#  
+0..9,*,#   
 
 ## Todo
 - Emulate SN76489A with an YM2149

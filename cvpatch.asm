@@ -1,5 +1,5 @@
 ; ------------------------------------------------------------------------------
-; CVPATCH V0.1
+; CVPATCH V0.2
 ;
 ; Colecovision BIOS patches for Z180 retrocomputer.
 ; ------------------------------------------------------------------------------
@@ -96,31 +96,61 @@ ENDIF
 		; The intended use of the 'AMERICA' byte is to differentiate 
 		; between 50Hz PAL and 60Hz NTSC systems,
 		; games may or may not use this value for timing routines.
-		LD	A,50
-		LD	(AMERICA),A		; Set to 50Hz
-
-		; Prevent NMI call during initialisation.
-		LD	A,0
-		LD	(VDP1SAV),A
+		LD	A,60
+		LD	(AMERICA),A		; Set to 60Hz (VGA)
 
 		; Some games (e.g. Zaxxon) use following addresses in the READ_VRAM 
 		; routine to get the VDP I/O port values.
 		LD	A,VDPIO1
 		LD	($1D43),A
 		LD	A,VDPIO0
-		LD	($1D47),A		
+		LD	($1D47),A
+
+		; Prevent NMI call during initialisation.
+		XOR	A
+		LD	(VDP1SAV),A
+		; Don't autostart the patch program again from scm
+		LD	($5003),A
 
 ; patch end
 
 ; ------------------------------------------------------------------------------
-; The propeller graphics card has no 50Hz vsync interrupt feature.
+; Additional system settings after scm has initialised the hardware
+; Setting the clock at half speed will also half the baudrate
+; This is adjusted in the baudrate divider setting but only works for some
+; baudrates. Tested with 57600 baud (doesn't work with 115200 baud)
+; Note: also adjust the baudrate in the scm configuration if needed.
+; ------------------------------------------------------------------------------
+
+IFDEF HALFSPEED
+		XOR	A
+		OUT0	(Z180_CCR),A		; Divide the clock by 2
+		IN0	A,(Z180_CNTLB0)
+		LD	B,A
+		AND	$07			; Baudrate divider is 1?
+		JR	Z,endBaudrate
+		LD	A,B
+		DEC	A			; Adjust baudrate divider for ASCI 0
+		OUT0	(Z180_CNTLB0),A
+endBaudrate:
+ENDIF
+
+		; Set maximum memory and I/O wait states
+		LD	A, $F0			
+		OUT0	(Z180_DCNTL),A
+
+; ------------------------------------------------------------------------------
+; The propeller graphics card has no 50Hz or 60Hz vsync interrupt feature.
 ; This is emulated with a timer (used ROMWBW HBIOS timer code as example).
 ; ------------------------------------------------------------------------------
 initTimer:	LD	A,IVT >> 8		; Load interrupt vector table..
 		LD	I,A			; .. high byte in I register
 		XOR	A
 		OUT0	(Z180_IL),A		; .. low byte in Z180 IL register
-		LD	HL,CPUKHZ		; 50HZ = 18432000 / 20 / 50 / X, so X = CPU KHZ
+		LD	HL,CPUKHZ*5/6		; 50HZ = 18432000 / 20 / 50 / X, so X = CPU KHZ, *5/6 --> 60HZ
+IFDEF VSYNC
+		DEC	H			; Set the timer a little higher than 60HZ
+ENDIF
 		OUT0	(Z180_TMDR1L),L		; Initialise timer 1 data register
 		OUT0	(Z180_TMDR1H),H
 		DEC	HL			; Reload occurs *after* zero
@@ -143,13 +173,7 @@ initTimer:	LD	A,IVT >> 8		; Load interrupt vector table..
 timer:		LD	(SPSAV),SP		; Save the stackpointer
 		LD	SP,SPTIMER		; More stackspace needed for the extra code
 		PUSH	AF
-		XOR	A
-		LD	(CHECK_EI),A		; set CHECK_EI instruction to NOP
-		IN0	A,(Z180_TCR)		; Acknowledge Z180 timer interrupt
-		IN0	A,(Z180_TMDR1L)		; "
-IFNDEF INTKEY
 		CALL	inputChar		; Poll ASCI 0 for a new key
-ENDIF
 		LD	A,(charkey1)
 		OR	A
 		JR	Z, checkNewChar
@@ -157,19 +181,34 @@ ENDIF
 		DEC	A
 		LD	(holdkey),A
 		JR	NZ,endChar
-		LD	(charkey1),A		; Release key after 5/50Hz=100ms 
+		LD	(charkey1),A		; Release key after 100ms 
 checkNewChar:	LD	A,(charkey)
 		OR	A
 		JR	Z,endChar
-IFDEF TESTK1
+IFDEF TESTKEY
 		CALL	outputChar
 ENDIF
-		LD	(charkey1),A
-		LD	A,5
+		CP	'P'
+		JR	NZ,endCheckP
+		CALL	$1FD6			; NoSound
+		JP	$200C			; Key P will invoke SCM
+endCheckP:	LD	(charkey1),A
+		LD	A,6			; 6/60HZ --> 100ms
 		LD	(holdkey),A		; Hold the key for 100ms 
 		XOR	A
 		LD	(charkey),A		; Clear the received key
-endChar:	LD	A,(VDP1SAV)
+endChar:	
+		XOR	A
+		LD	(CHECK_EI),A		; Set CHECK_EI instruction to NOP
+IFDEF VSYNC
+		OUT0	(Z180_TCR),A		; Stop the count!
+		LD	A,$22
+		OUT	(VDPIO3),A		; Wait for vsync to reduce screen artifacts
+		OUT0	(Z180_TCR),A		; Resume the count
+ENDIF
+		IN0	A,(Z180_TCR)		; Acknowledge Z180 timer interrupt
+		IN0	A,(Z180_TMDR1L)		; "
+		LD	A,(VDP1SAV)
 		BIT	5,A			; VDP interrupt bit set?
 		CALL	NZ, NMI_INT_VEC		; Yes, call NMI routine (ends with RETN)
 		LD	A,$FB
@@ -221,10 +260,6 @@ repeatCheck:	CP	(HL)
 endCheck:	POP	HL
 		LD	(charkey),A
 endInput:	POP	AF
-IFDEF INTKEY	
-		; Re-enable interrupts if using interrupt driven keyboard input
-		EI
-ENDIF				
 		RET
 
 charkey:	DB	0			; Latest received char
@@ -269,10 +304,17 @@ LAB_18DD:	LD	A,C
 
 ; ------------------------------------------------------------------------------
 ; Coleco $1FC4-->$1C82  WR_SPR_NM_TBL replacement routine.
+; * Use reversed sprite order to patch propeller emulator bug
 ; ------------------------------------------------------------------------------
 WRITE_SPRITE:	DI
 		LD	IX,($8004)
 		PUSH	AF
+IFDEF SPRITE_FIX
+		LD	B,A			; * Add number of sprites
+incIX:		INC	IX			; *
+		DJNZ	incIX			; *
+		DEC	IX			; *
+ENDIF
 		LD	IY,$73F2
 		LD	E,(IY+$00)
 		LD	D,(IY+$01)
@@ -284,7 +326,11 @@ WRITE_SPRITE:	DI
 		POP	AF
 LAB_1C9A:	LD	HL,($8002)
 		LD	C,(IX+$00)
+IFDEF SPRITE_FIX
+		DEC	IX			; * Reverse order
+ELSE
 		INC	IX
+ENDIF
 		LD	B,$00
 		ADD	HL,BC
 		ADD	HL,BC
@@ -376,9 +422,6 @@ LAB_1D56:	JP	CHECK_EI
 CONT_SCAN:	LD	A,(charkey1)
 		OR	A			; Is there a key pressed?
 		JR	Z,readColeco
-IFDEF TESTK2
-		CALL	outputChar		; Test
-ENDIF
 		PUSH	HL
 		LD	HL,joytab
 		CALL	conversion
@@ -417,9 +460,6 @@ DECODER:	LD	A,H
 		OR	A			; Is there a key pressed?
 		JR	Z,ctlColeco
 		PUSH	AF
-IFDEF TESTK2
-		CALL	outputChar		; Test
-ENDIF
 		LD	A,L
 		CP	$01
 		JR	Z,readKeypad
@@ -510,7 +550,7 @@ keytab:		DB	'#',$89
 		DB	$FF,$80		; End of table
 
 ; List of acceptable keyboard characters, in ascending order
-keylist:	DB	"#*,.0123456789ADWX"
+keylist:	DB	"#*,.0123456789ADPWX"
 		DB	$FF
 
 ; ------------------------------------------------------------------------------
